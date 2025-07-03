@@ -11,6 +11,7 @@ pip-delete-this-directory.txt
 .venv/
 .pytest_cache/
 .mypy_cache/
+SECRET_KEY.txt
 
 # Node.js / React
 node_modules/
