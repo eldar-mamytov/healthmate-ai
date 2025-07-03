@@ -1,49 +1,74 @@
+// frontend/src/App.js
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // NEW IMPORTS
+import AuthForm from './components/AuthForm'; // Your existing login/register component
+import ChatPage from './components/ChatPage'; // NEW IMPORT
+import api from './api'; // Ensure your Axios instance is imported
+import './components/AuthForm.css'; 
+import './components/ChatPage.css'; 
+import './App.css'; // Your existing CSS
 
 function App() {
-  const [backendStatus, setBackendStatus] = useState('Checking...');
+    // State to track login status
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
-  useEffect(() => {
-    // Fetch from the Nginx proxy endpoint which forwards to FastAPI backend
-    fetch('/api/health')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    // Function to call on successful login/registration
+    const handleLoginSuccess = () => {
+        setIsLoggedIn(true);
+    };
+
+    // Function to call on logout
+    const handleLogout = () => {
+        localStorage.removeItem('token'); // Clear token from local storage
+        api.defaults.headers.common['Authorization'] = ''; // Clear Authorization header
+        setIsLoggedIn(false); // Update login state
+    };
+
+    // Re-check login status on app load or whenever the token might change externally
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            setIsLoggedIn(true);
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        } else {
+            setIsLoggedIn(false);
         }
-        return response.json();
-      })
-      .then(data => {
-        setBackendStatus(`Backend Status: ${data.status}`);
-      })
-      .catch(error => {
-        console.error("Error fetching backend status:", error);
-        setBackendStatus(`Error: ${error.message}. Check backend logs.`);
-      });
-  }, []); // Empty dependency array means this runs once on mount
+    }, []); // Run once on component mount
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          HealthMate-AI Frontend
-        </p>
-        <p>
-          {backendStatus}
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <BrowserRouter> {/* Wrap your entire app in BrowserRouter */}
+            <div className="App">
+                <Routes>
+                    {/* Route for the Login/Register page */}
+                    <Route
+                        path="/"
+                        element={
+                            isLoggedIn ? (
+                                <Navigate to="/chat" replace /> // If logged in, redirect to chat
+                            ) : (
+                                <AuthForm onLoginSuccess={handleLoginSuccess} /> // Otherwise, show auth form
+                            )
+                        }
+                    />
+
+                    {/* Route for the Chat page */}
+                    <Route
+                        path="/chat"
+                        element={
+                            isLoggedIn ? (
+                                <ChatPage onLogout={handleLogout} /> // If logged in, show chat page
+                            ) : (
+                                <Navigate to="/" replace /> // If not logged in, redirect to login
+                            )
+                        }
+                    />
+
+                    {/* Optional: Add a catch-all route for 404 (or redirect home) */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </div>
+        </BrowserRouter>
+    );
 }
 
 export default App;
