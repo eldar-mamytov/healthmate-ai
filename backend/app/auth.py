@@ -19,7 +19,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Retrieve JWT settings from environment variables
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 120))
 
 # Raise an error if SECRET_KEY is not set (critical for security)
 if not SECRET_KEY:
@@ -74,29 +74,22 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
-    """
-    Dependency to get the current authenticated user from a JWT token.
-    Raises HTTPException if token is invalid or expired.
-    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
-        # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        # Extract username from the payload (ensure it matches what you put in during token creation)
-        username: str = payload.get("sub") # 'sub' is a standard JWT claim for subject (username/user ID)
+        username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        # You can add more validation here if needed, e.g., token scope
-        token_data = schemas.TokenData(username=username) # Validate payload with a TokenData schema
+        token_data = schemas.TokenData(username=username)
 
     except JWTError:
         raise credentials_exception
 
-    # Fetch user from DB based on username from token
     user = db.query(models.User).filter(models.User.username == token_data.username).first()
     if user is None:
         raise credentials_exception

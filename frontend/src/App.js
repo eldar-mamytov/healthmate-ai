@@ -10,7 +10,7 @@ import './App.css'; // Your existing CSS
 
 function App() {
     // State to track login status
-    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
 
     // Function to call on successful login/registration
     const handleLoginSuccess = () => {

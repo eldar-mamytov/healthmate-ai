@@ -12,6 +12,8 @@ pip-delete-this-directory.txt
 .pytest_cache/
 .mypy_cache/
 SECRET_KEY.txt
+keys.txt
+/database/
 
 # Node.js / React
 node_modules/
