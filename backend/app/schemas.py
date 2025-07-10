@@ -47,7 +47,7 @@ class ChatMessageResponse(ChatMessageBase):
         from_attributes = True
 
 class ChatRequest(BaseModel):
-    model_choice: Literal["openai", "flan-t5"]
+    model_choice: Literal["openai", "flan-t5", "embedding"]
     message: str
 
 class EmbedRequest(BaseModel):

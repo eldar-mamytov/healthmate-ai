@@ -6,7 +6,7 @@ import axios from 'axios';
 // When deployed, Nginx will proxy requests, so the path will be relative.
 // For now, explicitly point to the backend's port 8000.
 const api = axios.create({
-  baseURL: 'http://localhost:8000', // Your FastAPI backend URL
+  baseURL: '/api', // Your FastAPI backend URL
 });
 
 // Optional: Add a request interceptor to attach the JWT token

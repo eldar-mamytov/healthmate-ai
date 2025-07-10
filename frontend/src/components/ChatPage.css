@@ -156,3 +156,31 @@
         max-width: 100%;
     }
 }
+
+.model-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 10px 20px 0 20px;
+    background: #f9f9f9;
+}
+
+.model-selector label {
+    margin-right: 8px;
+    font-size: 1em;
+    color: #333;
+}
+
+.model-dropdown {
+    font-size: 1em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
+    margin-right: 10px;
+    outline: none;
+    transition: border 0.2s;
+}
+.model-dropdown:focus {
+    border: 1.5px solid #4CAF50;
+}

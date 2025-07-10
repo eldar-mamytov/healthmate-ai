@@ -18,7 +18,7 @@ const Login = ({ onLoginSuccess }) => { // onLoginSuccess prop to handle redirec
       formData.append('username', username);
       formData.append('password', password);
 
-      const response = await api.post('/token', formData, {
+      const response = await api.post('/auth/token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },

@@ -4,75 +4,80 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api'; // Your Axios instance
 import './ChatPage.css'; // We'll create this file for styling
 
+const MODEL_OPTIONS = [
+    { value: 'openai', label: 'OpenAI (GPT-3.5)' },
+    { value: 'flan-t5', label: 'FLAN-T5' },
+    { value: 'embedding', label: 'Embedding Model' }
+];
+
 const ChatPage = ({ onLogout }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [modelChoice, setModelChoice] = useState(MODEL_OPTIONS[0].value);
     const navigate = useNavigate();
-    const messagesEndRef = useRef(null); // Ref for auto-scrolling to the bottom
+    const messagesEndRef = useRef(null);
 
     // Function to scroll to the bottom of messages
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    useEffect(() => {
+        setError('');
+    }, []);
+
     // Effect to scroll to bottom whenever messages change
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    // Fetch chat history on component mount
-    useEffect(() => {
-        const fetchChatHistory = async () => {
-            try {
-                setLoading(true);
-                const response = await api.get('/chat/history/');
-                setMessages(response.data);
-                setError('');
-            } catch (err) {
-                console.error("Failed to fetch chat history:", err);
-                if (err.response && err.response.status === 401) {
-                    // If unauthorized, navigate back to login (token expired or invalid)
-                    navigate('/');
-                } else {
-                    setError('Failed to load chat history. Please try again.');
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
+    // // Fetch chat history on component mount
+    // useEffect(() => {
+    //     const fetchChatHistory = async () => {
+    //         try {
+    //             setLoading(true);
+    //             const response = await api.get('/chat/history/');
+    //             setMessages(response.data);
+    //             setError('');
+    //         } catch (err) {
+    //             console.error("Failed to fetch chat history:", err);
+    //             if (err.response && err.response.status === 401) {
+    //                 // If unauthorized, navigate back to login (token expired or invalid)
+    //                 navigate('/');
+    //             } else {
+    //                 setError('Failed to load chat history. Please try again.');
+    //             }
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
 
-        fetchChatHistory();
-    }, [navigate]);
+    //     fetchChatHistory();
+    // }, [navigate]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim()) return;
 
         const userMessage = { role: 'user', content: newMessage.trim(), timestamp: new Date().toISOString() };
-        // Optimistically update UI with user's message
         setMessages(prevMessages => [...prevMessages, userMessage]);
-        setNewMessage(''); // Clear input immediately
-        setError(''); // Clear any previous errors
+        setNewMessage('');
+        setError('');
 
         try {
             setLoading(true);
-            const response = await api.post('/chat/', {
-                role: 'user', // ADD THIS LINE: Specify the role as 'user'
-                content: userMessage.content
+            const response = await api.post('/ai/chat/', {
+                message: userMessage.content, // NOT "content", your backend expects "message"
+                model_choice: modelChoice
             });
-            // Replace or add the actual assistant response
-            // The backend returns the assistant's message directly, so we just add it
-            setMessages(prevMessages => [...prevMessages, response.data]); 
+            setMessages(prevMessages => [...prevMessages, response.data]);
         } catch (err) {
-            console.error("Error sending message:", err);
-            // Revert optimistic update or show specific error for this message
             setError('Failed to send message. Please try again.');
-            // For now, just remove the optimistic update if an error occurred for simplicity
-            setMessages(prevMessages => prevMessages.filter(msg => msg !== userMessage)); 
+            setMessages(prevMessages => prevMessages.filter(msg => msg !== userMessage));
             if (err.response && err.response.status === 401) {
-                navigate('/'); // Redirect to login if token is expired
+                navigate('/');
             }
         } finally {
             setLoading(false);
@@ -86,9 +91,7 @@ const ChatPage = ({ onLogout }) => {
                 <button onClick={onLogout} className="logout-button">Logout</button>
             </header>
             <div className="messages-display">
-                {loading && <p>Loading chat history...</p>}
-                {error && <p className="error-message">{error}</p>}
-                {messages.length === 0 && !loading && !error && (
+                {messages.length === 0 && (
                     <p className="no-messages">Start your conversation with HealthMate AI!</p>
                 )}
                 {messages.map((msg, index) => (
@@ -100,7 +103,24 @@ const ChatPage = ({ onLogout }) => {
                     </div>
                 ))}
                 <div ref={messagesEndRef} /> {/* For auto-scrolling */}
+        </div>
+        {error && <p className="error-message">{error}</p>}
+
+            <div className="model-selector">
+                <label htmlFor="modelChoice"><b>Model:</b></label>
+                    <select
+                        id="modelChoice"
+                        value={modelChoice}
+                        onChange={e => setModelChoice(e.target.value)}
+                        className="model-dropdown"
+                        disable={loading}
+    >
+                        {MODEL_OPTIONS.map(opt => (
+                            <option value={opt.value} key={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
             </div>
+
             <form onSubmit={handleSendMessage} className="message-input-form">
                 <input
                     type="text"
