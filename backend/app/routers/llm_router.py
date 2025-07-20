@@ -15,6 +15,32 @@ router = APIRouter(
 )
 
 def retrieve_disease_info(question: str, db: Session):
+    # Debug
+    print("DEBUG: Looking up disease info for question:", question)
+
+    # Fetch all symptoms and their keywords from DB
+    symptoms = db.execute(text("SELECT id, name, keywords FROM symptoms")).fetchall()
+    print("DEBUG: Retrieved symptoms from DB:", symptoms)  # <-- Add this
+
+    # Prepare a dict: {symptom_id: [keyword1, keyword2, ...]}
+    symptom_kw_map = {}
+    for row in symptoms:
+        symptom_id, name, keywords = row
+        keyword_list = [kw.strip().lower() for kw in keywords.split(',') if kw.strip()]
+        symptom_kw_map[symptom_id] = keyword_list
+
+    # Find matching symptoms in question
+    question_lower = question.lower()
+    matching_symptom_ids = set()
+    for symptom_id, kw_list in symptom_kw_map.items():
+        for kw in kw_list:
+            if re.search(r"\b" + re.escape(kw) + r"\b", question_lower):
+                matching_symptom_ids.add(symptom_id)
+                break
+
+    print("DEBUG: Matching symptom IDs:", matching_symptom_ids)  # <-- Add this too
+
+
     """
     Given a user's question, returns the most relevant disease,
     its description, and relevant suggestions.
@@ -34,7 +60,9 @@ def retrieve_disease_info(question: str, db: Session):
     for symptom_id, kw_list in symptom_kw_map.items():
         for kw in kw_list:
             # Simple keyword presence check (word boundary so "run" not in "running")
-            if re.search(r"\b" + re.escape(kw) + r"\b", question_lower):
+            pattern = r"(?<!\w)" + re.escape(kw) + r"(?!\w)"
+            if re.search(pattern, question_lower):
+                print(f"Matched keyword: '{kw}' in question: '{question}'")
                 matching_symptom_ids.add(symptom_id)
                 break
 
@@ -51,10 +79,8 @@ def retrieve_disease_info(question: str, db: Session):
     # For each matched symptom, vote for linked diseases (sum weights)
     disease_scores = {}
     for symptom_id in matching_symptom_ids:
-        links = db.execute(text(
-            "SELECT disease_id, weight FROM disease_symptoms WHERE symptom_id = :sid",
-            {"sid": symptom_id}
-        )).fetchall()
+        stmt = text("SELECT disease_id, weight FROM disease_symptoms WHERE symptom_id = :sid")
+        links = db.execute(stmt, {"sid": symptom_id}).fetchall()
         for disease_id, weight in links:
             disease_scores[disease_id] = disease_scores.get(disease_id, 0) + float(weight)
 
@@ -70,15 +96,15 @@ def retrieve_disease_info(question: str, db: Session):
 
     # Pick the highest scoring disease
     top_disease_id = max(disease_scores, key=lambda k: disease_scores[k])
-    disease_row = db.execute(text(
-        "SELECT id, name, description FROM diseases WHERE id = :did",
+    disease_row = db.execute(
+        text("SELECT id, name, description FROM diseases WHERE id = :did"),
         {"did": top_disease_id}
-    )).fetchone()
+    ).fetchone()
     # Fetch specific suggestions for this disease + some general advice
-    suggestions = db.execute(text(
-        "SELECT text FROM suggestions WHERE disease_id = :did OR is_general_advice = TRUE LIMIT 5",
+    suggestions = db.execute(
+        text("SELECT text FROM suggestions WHERE disease_id = :did OR is_general_advice = TRUE LIMIT 5"),
         {"did": top_disease_id}
-    )).fetchall()
+    ).fetchall()
     return disease_row, [s[0] for s in suggestions]
 
 
@@ -147,26 +173,47 @@ async def chat_with_llm(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
     elif request.model_choice == "flan-t5":
-        disease_row, suggestions = retrieve_disease_info(request.message, db)
-        if disease_row:
-            advice = "\n".join(f"- {s}" for s in suggestions[:3]) if suggestions else ""
-            flan_prompt = (
-                "You are a health assistant. ONLY use the info below.\n"
-                f"Disease: {disease_row[1]}\n"
-                f"Description: {disease_row[2]}\n"
-                f"Advice:\n{advice}\n"
-                f"User's symptoms: '{request.message}'\n"
-                "Answer in a friendly, simple way using the above information only. If you are unsure, say to see a doctor."
-            )
+        user_text = request.message.lower().strip()
+        if any(greet in user_text for greet in ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]):
+                bot_response_content = "Hello! I'm your health assistant. How can I help you today?"
         else:
-            general_advice = "\n".join(f"- {s[0]}" for s in db.execute("SELECT text FROM suggestions WHERE is_general_advice=TRUE ORDER BY random() LIMIT 3").fetchall())
-            flan_prompt = (
-                "You are a health assistant. The user's symptoms did not match a known disease.\n"
-                f"General advice:\n{general_advice}\n"
-                "Politely recommend to see a doctor if they feel unwell or worried."
-            )
-        flan_response = flan_pipeline(flan_prompt)[0]['generated_text']
-        bot_response_content = flan_response
+            disease_row, suggestions = retrieve_disease_info(request.message, db)
+            if disease_row:
+                # Filter out repetitive generic consult-a-doctor suggestions
+                filtered_suggestions = [
+                    s for s in suggestions 
+                    if not s.lower().startswith("please consult") and not s.lower().startswith("it's always best")
+                ]
+
+                # Fallback: if all were filtered, use the original 3
+                final_suggestions = filtered_suggestions[:3] if filtered_suggestions else suggestions[:3]
+
+                advice = "\n".join(f"- {s}" for s in final_suggestions)
+                flan_prompt = (
+                    "You are a smart but careful health assistant.\n"
+                    f"A person says: '{request.message}'\n"
+                    f"Based on the symptom analysis, the likely disease is: {disease_row[1]}.\n"
+                    f"Description: {disease_row[2]}\n"
+                    f"Advice:\n{advice}\n"
+                    "Your job is to help the person understand what they might be experiencing and suggest next steps. "
+                    "If needed, ask them for more information (like duration, severity, other symptoms), but only based on what you know. "
+                    "If you're unsure, mention that this is not a diagnosis and advise seeing a doctor. "
+                    "Avoid repeating generic phrases like 'consult a doctor' unless necessary. "
+                    "Focus on helpful, actionable, and clear responses.\n"
+                    "Respond in a warm and clear tone."
+                )
+            else:
+                general_advice = "\n".join(f"- {s[0]}" for s in db.execute("SELECT text FROM suggestions WHERE is_general_advice=TRUE ORDER BY random() LIMIT 3").fetchall())
+                flan_prompt = (
+                    "You are a health assistant. The user's symptoms did not match a known disease.\n"
+                    f"General advice:\n{general_advice}\n"
+                    "Politely recommend to see a doctor if they feel unwell or worried."
+                )
+            print("DEBUG: disease_row =", disease_row)
+            print("DEBUG: suggestions =", suggestions)
+            print("DEBUG: flan_prompt =\n", flan_prompt)
+            flan_response = flan_pipeline(flan_prompt)[0]['generated_text']
+            bot_response_content = flan_response
     elif request.model_choice == "embedding":
         user_text = request.message.lower().strip()
         import re
