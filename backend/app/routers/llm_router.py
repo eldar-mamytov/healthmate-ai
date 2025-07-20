@@ -6,6 +6,7 @@ import re
 from .llm_models import openai_client, flan_pipeline, embedder
 from .. import schemas, models, auth
 from ..database import get_db
+from .llm_models import get_doctor_response
 import numpy as np
 
 router = APIRouter(
@@ -137,11 +138,12 @@ async def chat_with_llm(
         if not openai_client:
             raise HTTPException(status_code=503, detail="OpenAI API not configured (OPENAI_API_KEY missing).")
         try:
-            chat_completion = openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": request.message}]
-            )
-            bot_response_content = chat_completion.choices[0].message.content
+            chat_history = db.query(models.ChatMessage)\
+                .filter_by(user_id=current_user.id)\
+                .order_by(models.ChatMessage.timestamp).all()
+            history_as_list = [{"role": m.role, "content": m.content} for m in chat_history[-5:]]  # last 5 messages
+
+            bot_response_content = get_doctor_response(request.message, chat_history=history_as_list)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
     elif request.model_choice == "flan-t5":
