@@ -49,7 +49,16 @@ def get_doctor_response(user_input, chat_history=[]):
 # FLAN-T5 Setup
 flan_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
 flan_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
-flan_pipeline = pipeline("text2text-generation", model=flan_model, tokenizer=flan_tokenizer, max_new_tokens=150)
+flan_pipeline = pipeline(
+    "text2text-generation", 
+    model=flan_model, 
+    tokenizer=flan_tokenizer, 
+    max_new_tokens=150,
+    do_sample=True,
+    temperature=0.7,
+    top_p=0.9,
+    repetition_penalty=1.2
+)
 
 # Embedding Model
 embedder = SentenceTransformer('all-MiniLM-L6-v2')

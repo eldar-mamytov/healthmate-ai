@@ -11,8 +11,13 @@ WORKDIR /app
 
 COPY ./requirements.txt /app/requirements.txt
 
+# Install dependencies
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+# Pre-download SentenceTransformer model (MiniLM)
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Copy source code
 COPY . /app
 
 EXPOSE 8000
