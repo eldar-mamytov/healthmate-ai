@@ -12,10 +12,13 @@ const MODEL_OPTIONS = [
 
 const ChatPage = ({ onLogout }) => {
     const [messages, setMessages] = useState([]);
+    const inputRef = useRef(null);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [modelChoice, setModelChoice] = useState(MODEL_OPTIONS[0].value);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null);
     const navigate = useNavigate();
     const messagesEndRef = useRef(null);
 
@@ -33,28 +36,32 @@ const ChatPage = ({ onLogout }) => {
         scrollToBottom();
     }, [messages]);
 
+    // Keep input focused when messages update
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [messages]);
+
+    // // Text-to-Speech: Speak the last AI message
+    // useEffect(() => {
+    //     if (messages.length === 0) return;
+
+    //     const lastMsg = messages[messages.length - 1];
+    //     if ((lastMsg.role === 'assistant' || lastMsg.role === 'ai') && lastMsg.content) {
+    //         // Prevent overlapping speech: cancel first
+    //         window.speechSynthesis.cancel();
+    //         const utterance = new window.SpeechSynthesisUtterance(lastMsg.content);
+    //         utterance.rate = 1.03; // adjust speed (1 = normal)
+    //         utterance.pitch = 1.01; // adjust pitch (1 = normal)
+    //         utterance.volume = 1;
+    //         window.speechSynthesis.speak(utterance);
+    //     }
+    // }, [messages]);
+
     // // Fetch chat history on component mount
     // useEffect(() => {
-    //     const fetchChatHistory = async () => {
-    //         try {
-    //             setLoading(true);
-    //             const response = await api.get('/chat/history/');
-    //             setMessages(response.data);
-    //             setError('');
-    //         } catch (err) {
-    //             console.error("Failed to fetch chat history:", err);
-    //             if (err.response && err.response.status === 401) {
-    //                 // If unauthorized, navigate back to login (token expired or invalid)
-    //                 navigate('/');
-    //             } else {
-    //                 setError('Failed to load chat history. Please try again.');
-    //             }
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchChatHistory();
+    //     // 
     // }, [navigate]);
 
     const handleSendMessage = async (e) => {
@@ -84,6 +91,42 @@ const ChatPage = ({ onLogout }) => {
         }
     };
 
+    // ----------- Speech Recognition (Speech-to-Text) -----------
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const handleMicClick = () => {
+        if (!SpeechRecognition) {
+            setError("Speech recognition is not supported in this browser.");
+            return;
+        }
+        if (isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+            return;
+        }
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setNewMessage(transcript);
+            setIsListening(false);
+        };
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+        recognition.onerror = (event) => {
+            setError("Speech recognition error: " + event.error);
+            setIsListening(false);
+        };
+
+        recognition.start();
+        setIsListening(true);
+    };
+
     return (
         <div className="chat-container">
             <header className="chat-header">
@@ -98,27 +141,54 @@ const ChatPage = ({ onLogout }) => {
                     <div key={index} className={`chat-message ${msg.role}`}>
                         <div className="message-bubble">
                             <span className="message-role">{msg.role === 'user' ? 'You' : 'AI'}:</span> {msg.content}
+                            {msg.role !== 'user' && msg.content && (
+                                <button
+                                    className="tts-btn"
+                                    title="Play text-to-speech"
+                                    style={{
+                                        marginLeft: 10,
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "1.1em"
+                                    }}
+                                    onClick={() => {
+                                        window.speechSynthesis.cancel();
+                                        const utterance = new window.SpeechSynthesisUtterance(msg.content);
+                                        utterance.rate = 1.03;
+                                        utterance.pitch = 1.01;
+                                        utterance.volume = 1;
+                                        window.speechSynthesis.speak(utterance);
+                                    }}
+                                >
+                                    <svg width="22" height="22" viewBox="0 0 22 22" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 9v4h4l5 5V4l-5 5H3z"/>
+                                        <path d="M16 8.82a4 4 0 010 4.36" fill="none" stroke="#23b15a" strokeWidth="2" strokeLinecap="round"/>
+                                        <path d="M18 7a7 7 0 010 8" fill="none" stroke="#23b15a" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                </button>
+                            )}
                             <div className="message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</div>
                         </div>
                     </div>
                 ))}
                 <div ref={messagesEndRef} /> {/* For auto-scrolling */}
-        </div>
-        {error && <p className="error-message">{error}</p>}
+            </div>
+            {error && <p className="error-message">{error}</p>}
 
             <div className="model-selector">
                 <label htmlFor="modelChoice"><b>Model:</b></label>
-                    <select
-                        id="modelChoice"
-                        value={modelChoice}
-                        onChange={e => setModelChoice(e.target.value)}
-                        className="model-dropdown"
-                        disable={loading}
-    >
-                        {MODEL_OPTIONS.map(opt => (
-                            <option value={opt.value} key={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
+                <select
+                    id="modelChoice"
+                    value={modelChoice}
+                    onChange={e => setModelChoice(e.target.value)}
+                    className="model-dropdown"
+                    disabled={loading}
+                >
+                    {MODEL_OPTIONS.map(opt => (
+                        <option value={opt.value} key={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
             </div>
 
             <form onSubmit={handleSendMessage} className="message-input-form">
@@ -128,7 +198,17 @@ const ChatPage = ({ onLogout }) => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your message..."
                     disabled={loading}
+                    ref={inputRef}
                 />
+                <button
+                    type="button"
+                    onClick={handleMicClick}
+                    className={`mic-btn${isListening ? ' listening' : ''}`}
+                    title={isListening ? "Listening..." : "Click to speak"}
+                    disabled={loading}
+                >
+                    🎤︎︎
+                </button>
                 <button type="submit" disabled={loading}>
                     Send
                 </button>

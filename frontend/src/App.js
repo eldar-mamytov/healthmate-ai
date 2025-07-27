@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // NE
 import AuthForm from './components/AuthForm'; // Your existing login/register component
 import ChatPage from './components/ChatPage'; // NEW IMPORT
 import api from './api'; // Ensure your Axios instance is imported
+import MedicalBackground from './components/MedicalBackground';
 import './components/AuthForm.css'; 
 import './components/ChatPage.css'; 
 import './App.css'; // Your existing CSS
@@ -37,7 +38,9 @@ function App() {
 
     return (
         <BrowserRouter> {/* Wrap your entire app in BrowserRouter */}
-            <div className="App">
+            <div className="App" style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+                <MedicalBackground count={72}/>
+                <div style={{ position: "relative", zIndex: 10 }}>
                 <Routes>
                     {/* Route for the Login/Register page */}
                     <Route
@@ -66,6 +69,7 @@ function App() {
                     {/* Optional: Add a catch-all route for 404 (or redirect home) */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </div>
             </div>
         </BrowserRouter>
     );
