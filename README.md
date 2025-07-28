@@ -1,130 +1,134 @@
-HealthMate AI
 
-HealthMate AI is an easy-to-use medical chatbot that runs locally on your computer. You can chat about your symptoms and get helpful advice—no programming knowledge needed!
+# HealthMate AI
 
-⸻
+**HealthMate AI** is an easy-to-use medical chatbot that runs locally on your computer. You can chat about your symptoms and get helpful advice—no programming knowledge needed!
 
-Features
-	•	Chat with an AI about your health symptoms (supports GPT-4, FLAN-T5, and more)
-	•	Text-to-speech (click to hear answers out loud)
-	•	Voice input (microphone support)
-	•	Easy login: use demo account or register your own
-	•	All data is stored locally (private)
-	•	Works in any browser on your computer
+---
 
-⸻
+- Chat with an AI about your health symptoms (supports **GPT-4**, **FLAN-T5**, and more).
+- Text-to-speech (click to hear answers out loud).
+- Voice input (microphone support).
+- Every login uses one-time account or register your own.
+- All data is stored locally (private).
+- Works in any browser on your computer.
 
-Step-by-Step Setup (For Beginners)
+---
 
-You don’t need to know programming! Just follow the steps.
+## 🛠 Step-by-Step Setup (For Beginners)
 
-⸻
+You don’t need to know programming! Just follow these steps:
 
-1. Install Docker Desktop
+---
 
-For Windows:
-	•	Go to https://www.docker.com/products/docker-desktop/
-	•	Click “Download for Windows”
-	•	Open the downloaded file and follow the instructions to install
-	•	Restart your computer if asked
-	•	Open Docker Desktop from the Start menu
-	•	Wait until it says “Docker Desktop is running”
+### 1. Install Docker Desktop
 
-For Mac:
-	•	Go to https://www.docker.com/products/docker-desktop/
-	•	Click “Download for Mac” (choose Apple Chip or Intel based on your Mac)
-	•	Open the downloaded file and drag Docker to Applications
-	•	Open Docker from Applications
-	•	Wait until it says “Docker Desktop is running”
+- **Windows**:  
+  [Download Docker for Windows](https://docs.docker.com/desktop/install/windows-install/)  
+  Click "Download for Windows", install the app, restart your computer if needed.  
+  Open "Docker Desktop" from the Start menu. Wait until it says **"Docker Desktop is running"**.
 
-Docker Compose is included with Docker Desktop—you do not need to install it separately.
+- **Mac**:  
+  [Download Docker for Mac](https://docs.docker.com/desktop/install/mac-install/)  
+  Choose Apple chip or Intel based on your Mac, download the file, and drag Docker to Applications.  
+  Open Docker from Applications. Wait until it says **"Docker Desktop is running"**.
 
-⸻
+✅ *Docker Compose is included with Docker Desktop—no need to install separately.*
 
-2. Download the Project
+---
 
-If you don’t use Git:
-	•	Go to the GitHub page for this project.
-	•	Click the green “Code” button, then “Download ZIP”.
-	•	Unzip the folder to your Desktop or another location.
+### 2. Download the Project
 
-If you use Git:
-	•	For Windows:
-cmd: git clone https://github.com/eldar-mamytov/healthmate-ai.git
-cmd: cd Desktop\healthmate-ai
-	•	For Mac:
-terminal: git clone https://github.com/eldar-mamytov/healthmate-ai.git
-terminal: cd ~/Desktop/healthmate-ai
+- If you don’t use Git:  
+  Go to the GitHub page for this project → Click the green **“Code”** button → Select **Download ZIP** → Unzip to your Desktop or any location.
 
-⸻
+- If you use Git:  
+  Open Terminal (Mac) or CMD (Windows) and run:
 
-3. Add Your OpenAI API Key (optional)
-	•	This is only needed for GPT-4 features. The app will work with FLAN-T5 and embedding models even if you skip this.
-	•	Go to https://platform.openai.com/api-keys and create a new secret key.
-	•	Copy the key.
-	•	Open the file named .env in the project folder with Notepad (Windows) or TextEdit/VSCode (Mac).
-	•	Find the line that says:
-OPENAI_API_KEY=
-Paste your key after the =, like this:
-OPENAI_API_KEY=sk-xxxxxxxYOURKEY
-	•	Save the file.
+  ```
+  git clone https://github.com/eldar-mamytov/healthmate-ai.git
+  ```
 
-⸻
+  Then navigate into the folder:
 
-4. Start Docker Desktop
+  ```
+  cd healthmate-ai
+  ```
 
-Open Docker Desktop (from Start Menu on Windows, or from Applications on Mac).
-Wait until it says “Docker Desktop is running”.
+---
 
-⸻
+### 3. Add Your OpenAI API Key (Optional)
 
-5. Start HealthMate AI
-	•	Open Command Prompt (Windows) or Terminal (Mac)
-	•	Go to the folder where you unzipped or cloned the project.
-For Windows:
-    cmd: cd Desktop\healthmate-ai
-For Mac:
-    terminal: cd ~/Desktop/healthmate-ai
-	•	Start the app:
-For Windows:
-    cmd: docker-compose up –build
-For Mac:
-    terminal: docker-compose up –build
+Only needed for GPT-4 features.  
+The app still works with FLAN-T5 and embedding models without it.
 
-⸻
+1. Go to [OpenAI Dashboard](https://platform.openai.com/account/api-keys)  
+2. Click "Create API Key" → Copy it  
+3. Inside the project folder, create a new file named:
 
-6. Open the App in Your Browser
-	•	Open Chrome, Edge, Firefox, or Safari on your computer.
-	•	Go to: http://localhost:3000
-	•	Log in with the demo account:
-Username: eldar
-Password: eldar
-(Or you can register a new account if you want.)
-	•	Start chatting with the AI!
+   ```
+   .env
+   ```
 
-⸻
+4. Add this line:
 
-Stopping & Restarting
+   ```
+   OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
 
-To stop:
-	•	In your terminal or command prompt, press Ctrl + C
+---
+
+### 4. Start Docker Desktop
+
+Open **Docker Desktop** (from Start Menu on Windows, or from Applications on Mac).  
+Wait until it says **"Docker Desktop is running."**
+
+---
+
+### 5. Start HealthMate AI
+
+- **Windows**:  
+  Open Command Prompt → Navigate to the project folder → run:
+
+  ```
+  docker-compose up
+  ```
+
+- **Mac**:  
+  Open Terminal → Navigate to the project folder → run:
+
+  ```
+  docker-compose up
+  ```
+
+---
+
+### 6. Open the App in Your Browser
+
+Open Chrome, Edge, Firefox, or Safari and go to:  
+[http://localhost:3000](http://localhost:3000)
+
+Log in with the default:
+- **Username**: `admin`
+- **Password**: `admin`  
+(or register a new account if you want)
+
+✅ Start chatting with the AI!
+
+---
+
+## 🔁 Stopping & Restarting
+
+To stop the app:
+```
+Ctrl + C
+```
 
 To restart:
-	•	Run the docker-compose up –build command again
+```
+docker-compose up
+```
 
-⸻
+## 📎 Additional Resources
 
-Resetting the Database (Advanced)
-	•	Stop the app first (Ctrl + C)
-	•	Then run:
-For Windows:
-cmd: docker-compose down -v
-For Mac:
-terminal: docker-compose down -v
-	•	Then start as usual.
-
-⸻
-
-About
-
-Built with FastAPI, React, PostgreSQL, Docker, OpenAI, and FLAN-T5.
+- 🎥 **Demo Video**: [Watch the screen recording](link-to-your-video-file.mp4)
+- 🧪 **AI Pipeline Slides**: [View the pipeline presentation](link-to-your-slides.pptx)
